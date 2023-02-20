@@ -2347,6 +2347,12 @@
       "config_flow": true,
       "iot_class": "local_polling"
     },
+    "hubc2000pp": {
+      "name": "hubc2000pp",
+      "integration_type": "hub",
+      "config_flow": true,
+      "iot_class": "local_push"
+    },
     "huisbaasje": {
       "name": "Huisbaasje",
       "integration_type": "hub",

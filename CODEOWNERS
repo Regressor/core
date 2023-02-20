@@ -517,6 +517,8 @@ build.json @home-assistant/supervisor
 /tests/components/http/ @home-assistant/core
 /homeassistant/components/huawei_lte/ @scop @fphammerle
 /tests/components/huawei_lte/ @scop @fphammerle
+/homeassistant/components/hubc2000pp/ @Regressor
+/tests/components/hubc2000pp/ @Regressor
 /homeassistant/components/hue/ @balloob @marcelveldt
 /tests/components/hue/ @balloob @marcelveldt
 /homeassistant/components/huisbaasje/ @dennisschroer

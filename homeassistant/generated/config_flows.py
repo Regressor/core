@@ -184,6 +184,7 @@ FLOWS = {
         "homewizard",
         "honeywell",
         "huawei_lte",
+        "hubc2000pp",
         "hue",
         "huisbaasje",
         "hunterdouglas_powerview",
