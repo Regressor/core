@@ -1,17 +1,18 @@
 """The hubc2000pp integration."""
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN
-from .hubc2000pp import get_devices
+from .const import DOMAIN, KEY_SETUP_LOCK, KEY_UNSUB_STOP, LISTENER_KEY
+from .hubc2000pp import HUBC2000PPUdpReceiver, get_devices
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,17 +50,41 @@ class HUBC2000PPDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed()
         return self._devices
 
+    def udp_callback(self, message):
+        """Push data from hub."""
+        _LOGGER.warning("UDP message: %s", message)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up hubc2000pp from a config entry."""
 
     hass.data.setdefault(DOMAIN, {})
+    setup_lock = hass.data[DOMAIN].setdefault(KEY_SETUP_LOCK, asyncio.Lock())
 
     host = entry.data["host"]
     port = entry.data["port"]
 
+    if LISTENER_KEY not in hass.data[DOMAIN]:
+        async with setup_lock:
+            listener = HUBC2000PPUdpReceiver(port)
+            hass.data[DOMAIN][LISTENER_KEY] = listener
+            await listener.start_listen()
+
+            @callback
+            def stop_udp(event):
+                """Stop hub listener."""
+                _LOGGER.debug("Shutting down HUB listener")
+                listener.stop_listen()
+
+            unsub = hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop_udp)
+            hass.data[DOMAIN][KEY_UNSUB_STOP] = unsub
+
+    listener = hass.data[DOMAIN][LISTENER_KEY]
     coordinator = HUBC2000PPDataUpdateCoordinator(hass, host, port)
     await coordinator.async_config_entry_first_refresh()
+
+    listener.register_hub(host, coordinator.udp_callback)
+    _LOGGER.debug("HUB '%s' connected, listening for pushes", host)
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
 

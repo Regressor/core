@@ -2,6 +2,10 @@
 
 DOMAIN = "hubc2000pp"
 
+KEY_UNSUB_STOP = "unsub_stop"
+KEY_SETUP_LOCK = "setup_lock"
+LISTENER_KEY = "listener"
+
 DEVICE_EVENTS_DICT = {
     0: "Неизвестный статус",
     1: "Восстановление сети 220 В",
