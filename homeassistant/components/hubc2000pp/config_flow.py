@@ -20,8 +20,8 @@ _LOGGER = logging.getLogger(__name__)
 # Schema for user form
 HUB_SCHEMA = vol.Schema(
     {
-        vol.Required("host"): str,
-        vol.Required("port"): int,
+        vol.Required("host", default="127.0.0.1"): str,
+        vol.Required("port", default=22000): int,
     }
 )
 
@@ -45,7 +45,6 @@ class HubC2000PP:
     async def ping(self) -> PingResult:
         """Test if we can access with the host."""
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(("", self.port))
         sock.settimeout(2)
         sock.sendto(b"PING", (self.host, self.port))
         try:
