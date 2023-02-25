@@ -233,6 +233,26 @@ DEVICE_STATUSES_DICT = {
 FIRE_EVENTS = [19, 37, 40, 44, 76]
 DOOR_EVENTS = [3, 15, 18, 27, 119, 149, 216]
 MOTION_EVENTS = [3, 15, 18, 27, 119, 149, 216]
+ARMED_EVENTS = [
+    1,
+    24,
+    35,
+    39,
+    47,
+    72,
+    78,
+    80,
+    83,
+    91,
+    123,
+    188,
+    191,
+    195,
+    199,
+    218,
+]
+ARMING_EVENTS = [23]
+DISARMED_EVENTS = [109, 117, 119]
 
 ALARM_EVENTS = [
     3,

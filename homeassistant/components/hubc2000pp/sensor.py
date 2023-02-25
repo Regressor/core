@@ -95,11 +95,20 @@ class Device(CoordinatorEntity[HUBC2000PPDataUpdateCoordinator], SensorEntity):
         device_name = self.name
         device_uid = device["uid"]
 
-        if (
-            device["type"].startswith("door")
-            or device["type"].startswith("smoke")
-            or device["type"].startswith("motion")
-        ):
+        if device["type"] == "smokeSensor":
+            device_name = "ДИП-34А"
+            device_uid = f'{device["dev"]}.{device["sh"]}'
+
+        if device["type"] == "doorSensor":
+            device_name = "с2000-смк"
+            device_uid = f'{device["dev"]}.{device["sh"]}'
+
+        if device["type"] == "windowSensor":
+            device_name = "с2000-смк"
+            device_uid = f'{device["dev"]}.{device["sh"]}'
+
+        if device["type"] == "motionSensor":
+            device_name = "с2000-ИК"
             device_uid = f'{device["dev"]}.{device["sh"]}'
 
         if device["type"].startswith("rip"):
@@ -164,14 +173,17 @@ class Device(CoordinatorEntity[HUBC2000PPDataUpdateCoordinator], SensorEntity):
         )
         if self._attr_device_class != SensorDeviceClass.ENUM:
             if device is not None and "adc" in device and device["adc"] != "-":
-                self._attr_native_value = device["adc"]
-                self._attr_suggested_display_precision = 2
+                if self._attr_native_value != device["adc"]:
+                    self._attr_native_value = device["adc"]
+                    super()._handle_coordinator_update()
         else:
             if device is not None and "state" in device and device["state"] != "-":
-                self._attr_native_value = self._get_status_by_code(int(device["state"]))
-                self._attr_extra_state_attributes = {"code": int(device["state"])}
-
-        super()._handle_coordinator_update()
+                value = self._get_status_by_code(int(device["state"]))
+                code = int(device["state"])
+                if self._attr_native_value != value:
+                    self._attr_native_value = value
+                    self._attr_extra_state_attributes = {"code": code}
+                    super()._handle_coordinator_update()
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

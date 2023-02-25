@@ -290,6 +290,9 @@ aiosyncthing==0.5.1
 # homeassistant.components.tractive
 aiotractive==0.5.5
 
+# homeassistant.components.hubc2000pp
+aioudp==0.1.1
+
 # homeassistant.components.unifi
 aiounifi==44
 

@@ -62,6 +62,10 @@ class BinaryDevice(
             device_name = "с2000-смк"
             device_class = BinarySensorDeviceClass.DOOR
 
+        if device["type"] == "windowSensor":
+            device_name = "с2000-смк"
+            device_class = BinarySensorDeviceClass.WINDOW
+
         if device["type"] == "motionSensor":
             device_name = "с2000-ИК"
             device_class = BinarySensorDeviceClass.MOTION
@@ -98,15 +102,16 @@ class BinaryDevice(
                 if device["type"] == "smokeSensor":
                     is_on = state_code in FIRE_EVENTS
 
-                if device["type"] == "doorSensor":
+                if device["type"] in ("doorSensor", "windowSensor"):
                     is_on = state_code in DOOR_EVENTS
 
                 if device["type"] == "motionSensor":
                     is_on = state_code in MOTION_EVENTS
 
-                self._attr_is_on = is_on
-
-        super()._handle_coordinator_update()
+                # Call update entry only if data was changed
+                if self._attr_is_on != is_on:
+                    self._attr_is_on = is_on
+                    super()._handle_coordinator_update()
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

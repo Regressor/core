@@ -14,6 +14,107 @@ _LOGGER = logging.getLogger(__name__)
 LISTEN_ADDRESS = "0.0.0.0"
 
 
+def update_device(message, devices):
+    """Parse push message from hub, find and update device."""
+    push_data = message.split(":")
+
+    # message format: "type:uid:state" (type can be zone, relay, part)
+    if len(push_data) == 3:
+        uid = push_data[1]
+        state = push_data[2]
+        if push_data[0] == "zone":
+            zones = devices["zones"]
+            zone = next((x for x in zones if x["uid"] == uid), None)
+            if zone:
+                zone["state"] = state
+
+        if push_data[0] == "part":
+            parts = devices["parts"]
+            part = next((x for x in parts if x["id"] == int(uid)), None)
+            if part:
+                part["stat"] = state
+
+        if push_data[0] == "relay":
+            relays = devices["relays"]
+            relay = next((x for x in relays if x["id"] == int(uid)), None)
+            if relay:
+                relay["stat"] = state
+
+
+async def switch_relay(relay: int, state: bool, host: str, port: int) -> bool:
+    """Switch relay on or off."""
+    try:
+        async with aioudp.connect(host, port) as connection:
+            # first is "BAD_CMD" because of "trash" from aioudp
+            result = await asyncio.wait_for(connection.recv(), timeout=1)
+
+            if state:
+                cmd = f"relay_on:{relay}".encode()
+            else:
+                cmd = f"relay_off:{relay}".encode()
+
+            await connection.send(cmd)
+            result = await asyncio.wait_for(connection.recv(), timeout=1)
+            reply = result.decode("utf-8")
+
+            if reply != "RELAY_OK":
+                return False
+
+            return True
+    except asyncio.TimeoutError:
+        return False
+
+
+class RelayFailed(Exception):
+    """Raised when an switching relay has failed."""
+
+
+async def arm_partition(part, host, port) -> bool:
+    """ARM specified partition."""
+    try:
+        async with aioudp.connect(host, port) as connection:
+            # first is "BAD_CMD" because of "trash" from aioudp
+            result = await asyncio.wait_for(connection.recv(), timeout=1)
+
+            await connection.send(f"arm:{part}".encode())
+            result = await asyncio.wait_for(connection.recv(), timeout=1)
+            reply = result.decode("utf-8")
+
+            if reply != "ARM_OK":
+                return False
+
+            return True
+    except asyncio.TimeoutError:
+        return False
+
+
+async def disarm_partition(part, host, port) -> bool:
+    """DISARM specified partition."""
+    try:
+        async with aioudp.connect(host, port) as connection:
+            # first is "BAD_CMD" because of "trash" from aioudp
+            result = await asyncio.wait_for(connection.recv(), timeout=1)
+
+            await connection.send(f"disarm:{part}".encode())
+            result = await asyncio.wait_for(connection.recv(), timeout=1)
+            reply = result.decode("utf-8")
+
+            if reply != "DISARM_OK":
+                return False
+
+            return True
+    except asyncio.TimeoutError:
+        return False
+
+
+class ArmFailed(Exception):
+    """Raised when an arm has failed."""
+
+
+class DisarmFailed(Exception):
+    """Raised when a disarm has failed."""
+
+
 async def get_devices(host, port):
     """Get devices from HUB-C2000PP service."""
     devices = {"zones": [], "relays": [], "parts": [], "error": False}
@@ -72,10 +173,12 @@ async def get_devices(host, port):
                     device_info = line.split(":")
                     if len(device_info) == 4:
                         if device_info[0] == "part":
+                            uid = f"partition_{int(device_info[1])}"
                             device = {
                                 "id": int(device_info[1]),
                                 "stat": device_info[2],
                                 "desc": device_info[3],
+                                "uid": uid,
                             }
                             if device["stat"] == 0:
                                 continue
